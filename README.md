@@ -135,29 +135,35 @@ Stage 0 얇은 슬라이스 → 게이트0 ✅ → Stage 1 Pipeline A → 게이
         → Stage 2 Pipeline B → 게이트2 ✅ → Stage 3 정리·배포
 ```
 
-```bash
-# Stage 0 — 파이프라인 관통 (다운로드→전처리→라벨링→smoke)
-bash scripts/run_smoke.sh 2015-07
+아래는 각 단계의 핵심 명령(`python -m ...`)이다. 실제 실행·환경(conda env·GPU·경로)은 사용자 몫이며, 모델별 하이퍼파라미터는 `config/*.yaml`에 있다.
 
-# Stage 1 — 30년 학습
+```bash
+# Stage 1 — 데이터 준비
 conda run -n data python -m src.data.download_era5 --start 1989 --end 2020
 conda run -n cecd python -m src.data.preprocess --tag 1989-2020
 conda run -n cecd python -m src.data.add_doy_anomaly --tag 1989-2020   # 폭염·복합용 아노말리 채널
 conda run -n cecd python -m src.labeling.compound --tag 1989-2020
-bash scripts/run_spi1_hw_dr_members.sh    # 4멤버 앙상블 (가뭄·폭염)
-bash scripts/run_heatwave_anom.sh         # 폭염 doy-아노말리
-bash scripts/run_compound_anom.sh         # 복합 doy-아노말리
 
-# Stage 2 — GenCast 추론 → 후처리 → 리드타임 평가
-bash scripts/run_summer_inference.sh                                   # 90 init 추론 (gencast env)
+# Stage 1 — 4멤버 앙상블 학습 (타깃 × 멤버. 폭염·복합은 아노말리 config 사용)
+#   타깃: drought / heatwave / compound,  멤버 config: model_{cnn_lstm,convlstm,unet}_*_spi1_focal.yaml · model_transformer_*_spi1.yaml
+conda run -n cecd python -m src.train --full --target heatwave \
+  --config config/model_unet_anom_spi1_focal.yaml \
+  --proc data/processed/era5_daily_anom_1989-2020.nc \
+  --labels data/labels/labels_spi1_1989-2020.nc \
+  --out checkpoints/unet_heatwave_anom_spi1_focal.pt
+#   → 멤버(cnn_lstm·convlstm·unet·transformer) × 타깃(drought·heatwave·compound) 반복
+
+# Stage 2 — GenCast 추론(gencast env) → 후처리 → 하이브리드 윈도우 리드타임 평가
 conda run -n cecd python -m src.data.gencast_postprocess --raw-dir data/gencast_raw
-bash scripts/run_pipelineB_reeval.sh                                   # 하이브리드 윈도우 리드타임
+conda run -n cecd python -m src.eval.skill_decay --mode leadtime --target compound \
+  --year 2015 2016 2017 2018 2019 2020 \
+  --save-json data/skill_json/leadtime_compound.json
 
 # 그림 생성
 conda run -n cecd python notebooks/plot_skill_decay.py    # + plot_reliability / plot_detector_confusion / plot_ablation ...
 ```
 
-스크립트 단계 매핑 → [`scripts/SCRIPTS.md`](scripts/SCRIPTS.md) · 가중치 목록 → [`checkpoints/CHECKPOINTS.md`](checkpoints/CHECKPOINTS.md) · 데이터 산출물 → `data/DATA.md`.
+단계별 모듈 매핑 → [`scripts/SCRIPTS.md`](scripts/SCRIPTS.md) · 가중치 목록 → [`checkpoints/CHECKPOINTS.md`](checkpoints/CHECKPOINTS.md) · 데이터 산출물 → `data/DATA.md`.
 
 ---
 

@@ -1,24 +1,39 @@
-# 실행 스크립트 인벤토리
+# 실행 모듈 인벤토리
 
-단계별 재현 래퍼. 스테이지 순서대로 매핑.
+단계별 진입점(`python -m ...`)과 설정 매핑. 실행·환경(conda env·GPU·경로)은 사용자 몫.
+모델별 하이퍼파라미터는 `config/*.yaml`, 추론 manifest는 `config/detectors_spi1.json`.
 
-| 스크립트 | 스테이지 | 용도 |
-|---|---|---|
-| `run_smoke.sh` | Stage 0 | 다운로드→전처리→라벨링→CNN-LSTM smoke(파이프라인 관통·과적합 확인) |
-| `run_stage1_training.sh` | Stage 1 | 본학습 테스트 라운드(CNN-LSTM→Transformer 순차, `--full`) |
-| `run_stage1_formal.sh` | Stage 1 | 정식 재학습(CSI 극대화: 오버샘플·cosine+warmup·조기종료·grad clip) |
-| `run_singletarget.sh` | Stage 1 | 폭염·가뭄 단독 학습(구성요소별 비교) |
-| `run_multiscale.sh` | Stage 1 | SPI-3 멀티스케일(25스텝/90일) 가뭄·복합 학습 |
-| `run_spi1.sh` | Stage 1 | 🔄 SPI-1 전환 재학습(30일 일별 단일창) 가뭄·복합 |
-| `run_spi1_compound.sh` | Stage 1 | SPI-1 복합 재시작 복구(`--no-capture-output` 실시간 로그) |
-| `ensemble_eval.py` | Stage 1 | 앙상블 평가(CNN-LSTM+Transformer 확률 평균·Val에서 thr 최적화) |
-| `download_summer_input.py` | Stage 2 | GenCast 여름 init 입력 ERA5 다운로드(2015–2020·90 init) |
-| `run_summer_inference.sh` | Stage 2 | GenCast mini 15일 추론(90 init×8멤버→predictions.zarr) |
+## Stage 1 — 데이터·라벨
+| 단계 | 명령 |
+|---|---|
+| 다운로드 | `python -m src.data.download_era5 --start 1989 --end 2020` (env: data) |
+| 전처리 | `python -m src.data.preprocess --tag 1989-2020` |
+| doy-아노말리 채널 | `python -m src.data.add_doy_anomaly --tag 1989-2020` (폭염·복합 입력용) |
+| 라벨링 | `python -m src.labeling.compound --tag 1989-2020` (폭염·SPI-1 가뭄·복합) |
 
-## 후처리·평가 (scripts 아님 — `python -m`)
-- 후처리: `python -m src.data.gencast_postprocess --raw-dir data/gencast_raw --year {Y} ...`
-- 리드타임 평가: `python -m src.eval.skill_decay --mode leadtime --target {t} --year 2015..2020 --save-json ...`
-- 탐지기 핸드오프: `python -m src.eval.detector --manifest config/detectors_spi1.json`
+## Stage 1 — 4멤버 앙상블 학습
+`python -m src.train --full --target {drought|heatwave|compound} --config {config} --proc {nc} --labels {labels} --out {ckpt}`
 
-## 그림 생성 (notebooks/)
-`plot_pipeline.py` · `plot_skill_decay.py` · `plot_detector_confusion.py` · `plot_reliability.py` → `notebooks/figures/`.
+| 멤버 | config(아노말리=폭염·복합) |
+|---|---|
+| CNN-LSTM | `model_cnn_lstm_anom_spi1_focal.yaml` (가뭄: `model_cnn_lstm_spi1_focal.yaml`) |
+| ConvLSTM | `model_convlstm_anom_spi1_focal.yaml` (가뭄: `model_convlstm_spi1_focal.yaml`) |
+| U-Net | `model_unet_anom_spi1_focal.yaml` (가뭄: `model_unet_spi1_focal.yaml`) |
+| Transformer | `model_transformer_anom_spi1.yaml` (가뭄: `model_transformer_spi1.yaml`) |
+
+- proc: 폭염·복합 = `data/processed/era5_daily_anom_1989-2020.nc`, 가뭄 = `data/processed/era5_daily_1989-2020.nc`
+- labels: `data/labels/labels_spi1_1989-2020.nc`
+- 멤버 선정·임계값: `python -m src.eval.ablation --members-target {target}` → manifest 갱신
+- 앙상블 단발 평가: `scripts/ensemble_eval.py`
+
+## Stage 2 — GenCast 추론·후처리·평가
+| 단계 | 명령 |
+|---|---|
+| 입력 다운로드 | `scripts/download_summer_input.py` (2015–2020 · 90 init) |
+| GenCast 추론 | gencast env에서 90 init×8멤버 15일 → `predictions.zarr` |
+| 후처리 | `python -m src.data.gencast_postprocess --raw-dir data/gencast_raw` |
+| 리드타임 평가 | `python -m src.eval.skill_decay --mode leadtime --target {t} --year 2015..2020 --save-json ...` |
+| 탐지기 재현 | `python -m src.eval.detector --manifest config/detectors_spi1.json --split test` |
+
+## 그림 (notebooks/)
+`plot_pipeline.py` · `plot_skill_decay.py` · `plot_detector_confusion.py` · `plot_reliability.py` · `plot_ablation.py` · `plot_diversity.py` · `plot_learning_curve.py` → `notebooks/figures/`.

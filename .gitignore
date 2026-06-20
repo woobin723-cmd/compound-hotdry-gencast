@@ -36,3 +36,6 @@ compound_extreme_climate_plan_v6.docx
 
 # ===== 개인정보 포함 보고서·발표자료(배포 제외) =====
 docs/
+
+# ===== 서버 전용 실행 래퍼(.sh — 디스크엔 유지, 저장소 제외) =====
+scripts/*.sh
