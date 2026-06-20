@@ -10,7 +10,6 @@
 **리드타임 Skill Decay · 상대 Skill Score · Spread-Error · Reliability**로 정량화한다.
 
 📊 **결과 요약**: [`RESULTS.md`](RESULTS.md)  ·  🖼 **그림**: [`notebooks/figures/`](notebooks/figures/)
-*(상세 보고서·발표자료는 개인정보 포함으로 저장소에 포함하지 않음)*
 
 ---
 
