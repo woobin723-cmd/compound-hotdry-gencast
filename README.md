@@ -175,9 +175,10 @@ conda run -n cecd python notebooks/plot_skill_decay.py    # + plot_reliability /
 → 이것만으로 **Pipeline B(GenCast 평가) 전체를 재현**할 수 있다(GenCast 재추론 불필요). 빠진 `gencast_raw`는 이 후처리본의 원재료일 뿐이다.
 
 ```bash
-# Releases에서 분할 파일(.part-aa, .part-ab, ...) 내려받아 합치고 해제
-cat data_core_cecd.tar.zst.part-* > data_core_cecd.tar.zst
+# Releases에서 분할 파일(part00~part05) 내려받아 순서대로 합치고 해제
+cat data_core_cecd.tar.part0*.zst > data_core_cecd.tar.zst
 tar -I zstd -xf data_core_cecd.tar.zst        # → data/ 하위로 복원
+# (선택) 무결성: sha256sum -c data_core_cecd.sha256
 ```
 
 처음부터 재생성하려면:
