@@ -1,0 +1,50 @@
+# WeatherBench2 ERA5 다운로드/전처리 설정 (Pipeline A)
+# 출처: gs://weatherbench2 (이미 1° 보존적 regrid 완료, 익명 접속)
+
+source:
+  # WB2 ERA5 1도 6시간 zarr (360x181 equiangular with poles, conservative)
+  wb2_zarr: "gs://weatherbench2/datasets/era5/1959-2023_01_10-6h-360x181_equiangular_with_poles_conservative.zarr"
+  token: "anon"           # gcsfs 익명 접속
+  consolidated: true
+
+# 동아시아 영역 (확정, 변경 금지)
+region:
+  lat_min: 0
+  lat_max: 70
+  lon_min: 60
+  lon_max: 180
+  # 1° → 약 71 lat × 121 lon
+
+# 변수: WB2 원본 이름 → 로컬 표준 이름
+variables:
+  2m_temperature: t2m              # K, 일평균
+  total_precipitation_6hr: tp      # m, 6h 누적 → 일합산(sum)
+  geopotential: z500               # level=500 선택, Z500 = z/9.80665 (m)
+  temperature: t850                # level=850 선택, K, 일평균
+level_select:
+  z500: 500
+  t850: 850
+static:
+  land_sea_mask: lsm               # 1회 다운로드, 해양 마스킹용
+
+# 시간 (확정)
+period:
+  start_year: 1989
+  end_year: 2020
+
+# 분할 (시간 기반, 누수 방지)
+split:
+  train: [1989, 2009]
+  val:   [2010, 2014]
+  test:  [2015, 2020]
+
+# Stage 0 얇은 수직 슬라이스
+smoke:
+  month: "2015-07"
+
+paths:
+  raw: "data/raw"
+  processed: "data/processed"
+  labels: "data/labels"
+
+seed: 42

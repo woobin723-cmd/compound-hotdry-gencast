@@ -1,0 +1,37 @@
+{
+  "compound": {
+    "members": [
+      "checkpoints/cnn_lstm_compound_anom_spi1_focal.pt",
+      "checkpoints/convlstm_compound_anom_spi1_focal.pt",
+      "checkpoints/unet_compound_anom_spi1_focal.pt",
+      "checkpoints/transformer_compound_anom_spi1.pt"
+    ],
+    "combine": "mean",
+    "threshold": 0.2584,
+    "proc": "data/processed/era5_daily_anom_1989-2020.nc",
+    "note": "SPI-1 복합(고온∧SPI-1<-1, flash hot-dry). doy-아노말리 5채널(t2m,tp,Z500,t850,t2m_anom) 4멤버 앙상블. ⚠️ 입력=era5_daily_anom_*.nc 필요(proc 필드·Pipeline B 후처리도 아노말리 채널 산출). heat 성분이 복합 병목→폭염과 동일 아노말리 적용. CVUT 4멤버 test_CSI 0.2897(AUC0.986·Prec0.444·Recall0.455·PR-AUC0.428). 비-아노말리 동일 4멤버 0.2031 대비 +43%(순수 통제·입력채널만). ablation val-CSI 최적 CVU(0.2948)이나 4멤버 통일 채택(차이 0.005). 기존 4채널 복합 멤버(*_compound_spi1_focal.pt)·BCE판 전부 파일 보존. threshold=ablation Val 보정(CVUT)."
+  },
+  "drought": {
+    "members": [
+      "checkpoints/cnn_lstm_drought_spi1_focal.pt",
+      "checkpoints/convlstm_drought_spi1_focal.pt",
+      "checkpoints/unet_drought_spi1_focal.pt",
+      "checkpoints/transformer_drought_spi1.pt"
+    ],
+    "combine": "mean",
+    "threshold": 0.343,
+    "note": "SPI-1<-1 단기가뭄. 30일 일별 단일윈도우 4멤버 앙상블(전부 Focal·구조 통일). ablation 15조합 중 CVUT(4멤버 전체)가 val-CSI 최적(Val·Test 일치)·test_CSI 0.7001(AUC0.981·Prec0.806·Recall0.842). 단독 U-Net 0.6907·기존 단일 BCE 0.5565 대비 +26%. 기존 cnn_lstm_drought_spi1.pt(BCE 단일)은 파일 보존·매니페스트서만 제외. threshold=ablation Val 보정값(detector --calibrate로 재현 가능)."
+  },
+  "heatwave": {
+    "members": [
+      "checkpoints/cnn_lstm_heatwave_anom_spi1_focal.pt",
+      "checkpoints/convlstm_heatwave_anom_spi1_focal.pt",
+      "checkpoints/unet_heatwave_anom_spi1_focal.pt",
+      "checkpoints/transformer_heatwave_anom_spi1.pt"
+    ],
+    "combine": "mean",
+    "threshold": 0.3177,
+    "proc": "data/processed/era5_daily_anom_1989-2020.nc",
+    "note": "폭염 doy-아노말리 5채널(t2m,tp,Z500,t850,t2m_anom) 4멤버 앙상블. ⚠️ 입력=era5_daily_anom_*.nc(t2m_anom 포함) 필요(proc 필드 참고·Pipeline B 후처리도 아노말리 채널 산출). CVUT 4멤버 test_CSI 0.4770(AUC0.986·Prec0.635·Recall0.657·PR-AUC0.715). 비-아노말리 동일 4멤버 0.2985 대비 **순수 아노말리 효과 +60%**(윈도우·손실·앙상블 동일·입력채널만). ablation val-CSI 최적은 CVU 3멤버(0.4804)이나 4멤버 통일 채택(차이 0.003). 비-아노말리 4채널 멤버(*_heatwave_spi1_focal.pt)·14일 모델 전부 파일 보존. threshold=ablation Val 보정(CVUT)."
+  }
+}

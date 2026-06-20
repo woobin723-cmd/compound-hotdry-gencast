@@ -1,0 +1,42 @@
+# CNN-LSTM · SPI-1(30일) · 손실 통일 실험(A) — Focal Loss 버전
+# 🔬 2026-06-06: 앙상블 멤버 손실 이질성 해소. 현 정식은 CNN-LSTM=Weighted BCE,
+#   Transformer=Focal로 손실이 달라, 보정 안 된 확률을 단순 평균하는 문제(과신·under-dispersion).
+#   사용자 결정=A(손실 통일). 둘 다 Focal로 맞춰 ①멤버 척도 정렬 ②교란 없는 구조 비교.
+#   현 정식 cnn_lstm_compound_spi1.pt(BCE)는 보존, 본 실험은 *_spi1_focal.pt 별도 태그.
+#   ⚠️ 손실만 weighted_bce→focal 변경. 나머지(윈도우 30일·변수 4·분할·모델 구조·오버샘플) 전부 동일.
+model:
+  name: cnn_lstm
+  in_vars: 4                # t2m, tp, Z500, t850
+  cnn_channels: [32, 64, 128]
+  lstm_hidden: 256
+  lstm_layers: 2
+  bidirectional: true
+  dropout: 0.2
+
+data:
+  time_window: 30           # 30일 일별 단일 윈도우 (멀티스케일 미사용)
+
+train:
+  batch_size: 2
+  epochs: 30
+  lr: 1.0e-3
+  weight_decay: 5.0e-4
+  warmup_epochs: 3
+  grad_clip: 1.0
+  pos_weight: null          # focal에선 미사용(alpha가 불균형 처리) — 둬도 무시됨
+  sampler:
+    oversample: true        # 육지 양성밀도 비례 오버샘플(focal과 병용)
+    pos_boost: 4.0
+  early_stopping:
+    patience: 7
+  seed: 42
+
+loss:
+  name: focal               # 🔬 통일 실험: Transformer와 동일 Focal
+  alpha: 0.25
+  gamma: 2.0
+
+smoke:
+  epochs: 30
+  batch_size: 2
+  subset_days: 90

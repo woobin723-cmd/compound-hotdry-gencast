@@ -1,0 +1,22 @@
+# 복합 극한기후(Hot-Dry) 라벨링 설정
+
+heatwave:
+  variable: t2m
+  percentile: 95            # day-of-year 윈도우 기준 p95
+  doy_window: 7             # ±7일 윈도우로 doy별 임계 산출
+  min_consecutive_days: 3   # 3일 이상 연속
+  climatology_period: [1989, 2020]
+
+drought:
+  variable: tp
+  # 🔄 SPI-3→SPI-1 전환(2026-06-03): GenCast 평가 타당성(15일 예보가 90일 윈도우의
+  # 17%만 채움→가뭄 평가 불가; 30일이면 ~50%). 재해석="강수량"이 아닌 "가뭄 신호 재현".
+  # 기존 SPI-3 라벨/모델은 보존(원 정의 baseline). 상세=report-material 슬라이드 8-8.
+  spi_scale: 1              # SPI-1 (1개월=30일 누적). compound.py에서 *30 → scale_days=30
+  threshold: -1.0           # SPI-1 < -1.0 (단기/flash 가뭄, base rate≈15.9%)
+  distribution: gamma       # gamma fit (0 강수 혼합 처리)
+  climatology_period: [1989, 2020]
+
+compound:
+  # Hot-Dry = 동일 격자·동일 시기 폭염 & 가뭄 동시 충족
+  require: [heatwave, drought]

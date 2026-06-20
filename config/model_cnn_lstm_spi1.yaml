@@ -1,0 +1,42 @@
+# CNN-LSTM · SPI-1(30일) 단일 일별 윈도우 (가뭄·복합 재구축)
+# 🔄 2026-06-03: 가뭄 정의 SPI-3→SPI-1 전환에 맞춰 입력 윈도우를 라벨 누적기간(30일)에 정합.
+#   - 멀티스케일(주별 다운샘플) 폐기: 30일은 일별로 메모리에 들어가고, 90일 윈도우를 유지하면
+#     Stage 2에서 GenCast 함량이 다시 17%로 떨어져 SPI-1 전환 목적을 무효화하기 때문.
+#   - 30일 일별 = 입력 윈도우 ≈ SPI-1 누적기간 → 시간스케일 정합(가뭄 역설 해소 원리 그대로).
+#   - 손실(Weighted BCE)·변수 4개·분할 확정 유지. 윈도우 길이만 14→30.
+model:
+  name: cnn_lstm
+  in_vars: 4                # t2m, tp, Z500, t850
+  cnn_channels: [32, 64, 128]
+  lstm_hidden: 256
+  lstm_layers: 2
+  bidirectional: true
+  dropout: 0.2
+
+data:
+  time_window: 30           # 30일 일별 단일 윈도우 (멀티스케일 미사용)
+  # 입력 텐서: (batch, time=30, vars=4, lat=71, lon=120)
+
+train:
+  batch_size: 2             # 30스텝(14스텝의 ~2.1배 메모리) → batch 2(OOM 회피, ms 25스텝과 동급)
+  epochs: 30
+  lr: 1.0e-3
+  weight_decay: 5.0e-4
+  warmup_epochs: 3
+  grad_clip: 1.0
+  pos_weight: null          # Weighted BCE; null이면 train 라벨 빈도로 자동 산출
+  sampler:
+    oversample: true        # 육지 양성밀도 비례 오버샘플
+    pos_boost: 4.0
+  early_stopping:
+    patience: 7             # val-CSI 7ep 개선 없으면 중단(best-val 저장됨)
+  seed: 42
+
+loss:
+  name: weighted_bce        # 확정 손실(변경 금지)
+  pos_weight_cap: 100
+
+smoke:
+  epochs: 30
+  batch_size: 2
+  subset_days: 90           # 30일 윈도우 → smoke subset 90일로 충분

@@ -1,0 +1,39 @@
+# Spatio-Temporal Transformer (주력, Focal Loss)
+model:
+  name: transformer
+  in_vars: 4
+  patch_size: 8             # 8×8 패치 토큰화 (~134 토큰)
+  embed_dim: 256
+  depth: 6
+  num_heads: 8
+  mlp_ratio: 4.0
+  dropout: 0.2              # 정식: 0.1→0.2 (테스트서 ep15후 과적합 관측 → 정규화 강화)
+  attention: factorized     # 공간/시간 분리 어텐션 (메모리 절약)
+  pos_encoding: 2d_latlon   # 위도·경도 기반 2D 위치 인코딩
+
+data:
+  time_window: 14
+
+loss:
+  name: focal               # 확정 손실(변경 금지)
+  alpha: 0.25
+  gamma: 2.0
+
+train:
+  batch_size: 8
+  epochs: 80                # 정식: ~1분/epoch. 조기종료로 과적합 전 자동 중단
+  lr: 5.0e-4
+  weight_decay: 5.0e-2
+  warmup_epochs: 5          # 선형 warmup 후 cosine 감쇠
+  grad_clip: 1.0            # 그래디언트 폭주 방지
+  sampler:
+    oversample: true        # 육지 양성밀도 비례 오버샘플(focal과 병행, 강한 사건 노출↑)
+    pos_boost: 4.0          # 최다 양성 윈도우 가중 (1+pos_boost)배까지
+  early_stopping:
+    patience: 12            # 테스트서 ep15 정점 → 넉넉히 12ep 관찰 후 중단
+  seed: 42
+
+smoke:
+  epochs: 30                # 소데이터 과적합 확인용
+  batch_size: 4
+  subset_days: 60

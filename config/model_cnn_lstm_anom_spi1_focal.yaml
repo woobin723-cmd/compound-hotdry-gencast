@@ -1,0 +1,35 @@
+# CNN-LSTM · 폭염 doy-아노말리 5채널 · Focal (2026-06-14)
+# 기존 model_cnn_lstm_spi1_focal.yaml에 t2m_anom 채널 추가(in_vars 4→5).
+model:
+  name: cnn_lstm
+  in_vars: 5                # t2m, tp, Z500, t850, t2m_anom
+  cnn_channels: [32, 64, 128]
+  lstm_hidden: 256
+  lstm_layers: 2
+  bidirectional: true
+  dropout: 0.2
+data:
+  time_window: 30
+  vars: [t2m, tp, Z500, t850, t2m_anom]
+train:
+  batch_size: 2
+  epochs: 30
+  lr: 1.0e-3
+  weight_decay: 5.0e-4
+  warmup_epochs: 3
+  grad_clip: 1.0
+  pos_weight: null
+  sampler:
+    oversample: true
+    pos_boost: 4.0
+  early_stopping:
+    patience: 7
+  seed: 42
+loss:
+  name: focal
+  alpha: 0.25
+  gamma: 2.0
+smoke:
+  epochs: 30
+  batch_size: 2
+  subset_days: 90

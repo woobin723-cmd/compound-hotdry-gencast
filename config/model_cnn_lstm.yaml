@@ -1,0 +1,37 @@
+# CNN-LSTM 베이스라인 (Weighted BCE)
+model:
+  name: cnn_lstm
+  in_vars: 4                # t2m, tp, Z500, t850
+  cnn_channels: [32, 64, 128]
+  lstm_hidden: 256
+  lstm_layers: 2
+  bidirectional: true
+  dropout: 0.2
+
+data:
+  time_window: 14           # 입력 시간창 (days)
+  # 입력 텐서: (batch, time=14, lat=71, lon=121, vars=4)
+
+train:
+  batch_size: 4             # 픽셀별 LSTM(B*H*W 시퀀스)이라 8은 OOM(~20GB) → 4
+  epochs: 30                # 정식: ~30분/epoch. 조기종료로 실제론 ~15~20ep에서 멈출 가능성
+  lr: 1.0e-3
+  weight_decay: 5.0e-4      # 정식: 1e-4→5e-4 (정규화 강화)
+  warmup_epochs: 3          # 선형 warmup 후 cosine 감쇠
+  grad_clip: 1.0            # 그래디언트 폭주 방지
+  pos_weight: null          # Weighted BCE; null이면 train 라벨 빈도로 자동 산출
+  sampler:
+    oversample: true        # 육지 양성밀도 비례 오버샘플(강한 compound 사건 노출↑)
+    pos_boost: 4.0          # 최다 양성 윈도우 가중 (1+pos_boost)배까지
+  early_stopping:
+    patience: 7             # val-CSI 7ep 개선 없으면 중단(best-val 가중치는 저장됨)
+  seed: 42
+
+loss:
+  name: weighted_bce        # 확정 손실(변경 금지)
+  pos_weight_cap: 100       # 오버샘플과 병행: pos_weight 731→100 캡(오탐 폭증 완화)
+
+smoke:
+  epochs: 30                # 소데이터 과적합 확인용
+  batch_size: 4
+  subset_days: 60

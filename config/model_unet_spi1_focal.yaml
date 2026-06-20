@@ -1,0 +1,39 @@
+# U-Net · SPI-1(30일) · 앙상블 멤버 확장 · Focal Loss 통일
+# 🔬 2026-06-08: 앙상블 멤버 다양성 확장(목표 4멤버). 복합 탐지=픽셀별 세그멘테이션 →
+#   U-Net(encoder-decoder+skip)으로 강한 공간 prior 제공. 시간(30)×변수(4)=120채널 concat.
+#   순환/어텐션 멤버와 상보적. 손실 Focal 통일. 윈도우·변수·분할 동일. 출력 *_spi1_focal.pt.
+model:
+  name: unet
+  in_vars: 4                # t2m, tp, Z500, t850 (time_window와 곱해 입력채널=120)
+  base_ch: 32               # 인코더 시작 채널(32→64→128→256 bottleneck)
+  depth: 3                  # 다운/업샘플 3단계
+  dropout: 0.2
+
+data:
+  time_window: 30           # 30일 → U-Net 입력채널 = 4*30 = 120
+  # 입력 텐서: (batch, time=30, vars=4, lat=71, lon=120)
+
+train:
+  batch_size: 2
+  epochs: 30
+  lr: 1.0e-3
+  weight_decay: 5.0e-4
+  warmup_epochs: 3
+  grad_clip: 1.0
+  pos_weight: null
+  sampler:
+    oversample: true
+    pos_boost: 4.0
+  early_stopping:
+    patience: 7
+  seed: 42
+
+loss:
+  name: focal
+  alpha: 0.25
+  gamma: 2.0
+
+smoke:
+  epochs: 30
+  batch_size: 2
+  subset_days: 90

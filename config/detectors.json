@@ -1,0 +1,27 @@
+{
+  "compound": {
+    "members": [
+      "checkpoints/cnn_lstm_compound_ms.pt",
+      "checkpoints/transformer_compound_ms.pt"
+    ],
+    "combine": "mean",
+    "threshold": 0.504492461681366,
+    "note": "멀티스케일 앙상블(주력). threshold는 calibrate로 Val에서 고정 기록."
+  },
+  "drought": {
+    "members": [
+      "checkpoints/cnn_lstm_drought_ms.pt"
+    ],
+    "combine": "single",
+    "threshold": null,
+    "note": "멀티스케일 단일. threshold=null → 멤버 ckpt val_threshold 사용."
+  },
+  "heatwave": {
+    "members": [
+      "checkpoints/cnn_lstm_heatwave.pt"
+    ],
+    "combine": "single",
+    "threshold": null,
+    "note": "14일 단일(단기현상·ms 불필요). threshold=null → 멤버 ckpt val_threshold."
+  }
+}

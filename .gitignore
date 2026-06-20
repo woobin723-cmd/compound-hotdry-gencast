@@ -1,0 +1,38 @@
+# ===== 대용량 데이터 (재생성 가능 — README 참조) =====
+data/
+*.zarr
+*.nc
+*.npz
+
+# ===== 체크포인트 보관본 (활성 .pt는 추적, archive·백업만 제외) =====
+checkpoints/archive/
+checkpoints/*.interrupted_bak
+*.bak
+
+# ===== python =====
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+.venv/
+
+# ===== node (html→pptx 변환 도구) =====
+notebooks/node_modules/
+notebooks/_shots/
+
+# ===== 로그·임시 산출물 =====
+logs/
+*.log
+
+# ===== 외부 저작권 참고그림(인용만, 재배포 금지) =====
+notebooks/figures/external/
+
+# ===== 작업 메모(서버 세션 전용) =====
+CLAUDE.md
+.claude/
+
+# ===== 계획·내부 문서(배포 제외) =====
+compound_extreme_climate_plan_v6.docx
+프로젝트계획서.pdf
+
+# ===== 개인정보 포함 보고서·발표자료(배포 제외) =====
+docs/

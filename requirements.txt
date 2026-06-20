@@ -1,0 +1,16 @@
+# 탐지 모델 학습 환경 (cecd env). 재현성 위해 버전 고정.
+# GPU: RTX 5090 (Blackwell) → torch cu128 빌드 필수
+# 설치: pip install torch==2.11.0 --index-url https://download.pytorch.org/whl/cu128
+torch==2.11.0
+xarray==2025.6.1
+netCDF4
+numpy<2.3
+scipy
+scikit-learn
+pyyaml
+zarr
+dask[array]
+bottleneck
+
+# 다운로드 전용(data env, 별도): gcsfs==2026.5.0
+# GenCast 추론(gencast env, 별도): JAX

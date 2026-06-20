@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>복합 극한기후 탐지 + GenCast 평가</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
+<style>
+:root{
+  --paper:#fbfbf9; --ink:#171a1f; --soft:#5b6470; --faint:#9aa3ad;
+  --line:#e6e6e1; --panel:#f3f3ee;
+  --teal:#0f766e; --teal-soft:#e7f3f1; --amber:#b45309; --rose:#be123c; --navy:#0b1220;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%;background:#0a0d12;font-family:'Pretendard',system-ui,sans-serif;color:var(--ink);-webkit-font-smoothing:antialiased}
+#stage{position:fixed;inset:0;display:grid;place-items:center}
+.s{
+  position:absolute;width:min(95vw,1300px);aspect-ratio:16/9;max-height:95vh;
+  background:var(--paper);overflow:hidden;display:none;
+  box-shadow:0 30px 80px rgba(0,0,0,.5);
+}
+.s.on{display:grid;animation:in .4s cubic-bezier(.2,.7,.3,1)}
+@keyframes in{from{opacity:0}to{opacity:1}}
+
+/* editorial content frame: left rail + main */
+.s.content{grid-template-columns:118px 1fr;grid-template-rows:1fr}
+.rail{background:var(--panel);border-right:1px solid var(--line);display:flex;flex-direction:column;justify-content:space-between;padding:42px 0 34px}
+.rail .no{writing-mode:vertical-rl;text-orientation:mixed;font-weight:800;font-size:62px;color:var(--line);letter-spacing:-.04em;margin:0 auto;line-height:1}
+.rail .sec{writing-mode:vertical-rl;text-orientation:mixed;font-size:12.5px;font-weight:700;letter-spacing:.22em;color:var(--teal);text-transform:uppercase;margin:0 auto}
+.main{padding:50px 60px 46px;display:flex;flex-direction:column;min-height:0}
+.eyebrow{font-size:13px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--teal)}
+h2{font-size:31px;font-weight:800;letter-spacing:-.015em;line-height:1.15;margin-top:7px}
+h2 small{display:block;font-size:15px;font-weight:600;color:var(--soft);margin-top:9px;letter-spacing:0}
+.hr{height:2px;background:var(--ink);width:46px;margin:15px 0 20px;opacity:.85}
+.content-body{flex:1;min-height:0;display:flex;flex-direction:column;gap:14px;font-size:16.5px;line-height:1.5}
+
+/* lists */
+ul{list-style:none;display:flex;flex-direction:column;gap:11px}
+li{position:relative;padding-left:22px}
+li::before{content:"";position:absolute;left:0;top:.62em;width:8px;height:2px;background:var(--teal)}
+li.s2{padding-left:38px;font-size:14.5px;color:var(--soft)}
+li.s2::before{left:20px;width:6px;background:var(--faint)}
+b{color:var(--teal);font-weight:700}
+em{font-style:normal;background:linear-gradient(transparent 62%,var(--teal-soft) 62%);font-weight:700;color:var(--ink)}
+.g{color:var(--teal);font-weight:800}
+
+/* two column */
+.grid{display:grid;gap:30px;flex:1;min-height:0}
+.g-2{grid-template-columns:1fr 1fr}
+.g-53{grid-template-columns:1fr 1.3fr}
+.g-75{grid-template-columns:1.3fr 1fr}
+.mid{align-self:center}
+
+/* figure */
+.fig{height:100%;display:flex;align-items:center;justify-content:center;background:#fff;border:1px solid var(--line);border-radius:6px;overflow:hidden}
+.fig img{max-width:100%;max-height:100%;object-fit:contain}
+.cap{font-size:12px;color:var(--faint);margin-top:8px;line-height:1.4}
+.figwrap{display:flex;flex-direction:column;min-height:0}
+
+/* cards */
+.cards{display:flex;flex-direction:column;gap:11px}
+.cards.row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.c{background:#fff;border:1px solid var(--line);border-left:3px solid var(--teal);border-radius:0 6px 6px 0;padding:13px 16px}
+.c h4{font-size:15.5px;font-weight:800}
+.c h4 span{float:right;font-size:12px;color:var(--faint);font-weight:700}
+.c p{font-size:13.5px;color:var(--soft);margin-top:5px;line-height:1.45}
+
+/* table */
+table{width:100%;border-collapse:collapse;font-size:15px}
+th,td{padding:9px 10px;text-align:center;border-bottom:1px solid var(--line)}
+th{font-size:12.5px;color:var(--faint);font-weight:700;text-transform:uppercase;letter-spacing:.04em}
+td:first-child,th:first-child{text-align:left;font-weight:700}
+tbody tr:hover{background:var(--panel)}
+
+/* callout */
+.call{background:var(--teal-soft);border-radius:8px;padding:14px 18px;font-size:14.5px;line-height:1.55;color:#0c4f49}
+.call.warn{background:#fdf2e3;color:#7c4a09}
+.call b{color:inherit;text-decoration:underline;text-decoration-color:rgba(0,0,0,.2)}
+
+/* big stats */
+.kpis{display:flex;gap:48px;justify-content:center;margin:8px 0}
+.kpi{text-align:center}
+.kpi .v{font-size:46px;font-weight:800;color:var(--teal);letter-spacing:-.03em;line-height:1}
+.kpi .l{font-size:13.5px;color:var(--soft);margin-top:8px}
+
+/* divider slides */
+.s.divider{background:var(--navy);color:#fff;place-items:center;text-align:center}
+.divider .dnum{font-size:15px;font-weight:700;letter-spacing:.3em;color:#5eead4;text-transform:uppercase}
+.divider h1{font-size:54px;font-weight:800;letter-spacing:-.02em;margin:18px 0 14px}
+.divider .dline{width:60px;height:3px;background:#14b8a6;margin:0 auto 16px}
+.divider p{font-size:16px;color:#94a3b8;max-width:620px;line-height:1.6}
+
+/* title */
+.s.cover{background:radial-gradient(120% 120% at 80% 10%,#134e4a 0%,#0b1220 55%);color:#fff;place-items:start;align-content:center;padding:0 90px}
+.cover .tag{font-size:13.5px;letter-spacing:.18em;text-transform:uppercase;color:#5eead4;font-weight:700}
+.cover h1{font-size:48px;font-weight:800;letter-spacing:-.02em;line-height:1.16;margin:18px 0}
+.cover .lead{font-size:18px;color:#cbd5e1;line-height:1.6;max-width:760px;font-weight:500}
+.cover .meta{margin-top:30px;display:flex;gap:14px;flex-wrap:wrap}
+.cover .meta span{font-size:13px;color:#99f6e4;border:1px solid rgba(94,234,212,.3);border-radius:999px;padding:5px 14px}
+.cover .dline{width:64px;height:3px;background:#14b8a6;margin:6px 0 4px}
+
+/* footer line on content */
+.foot{display:flex;justify-content:space-between;font-size:11.5px;color:var(--faint);border-top:1px solid var(--line);padding-top:11px;margin-top:4px}
+
+/* chrome */
+#prog{position:fixed;top:0;left:0;height:3px;background:var(--teal);z-index:60;transition:width .35s}
+#pg{position:fixed;bottom:13px;right:16px;font-size:12.5px;color:#7dd3c8;z-index:60;font-variant-numeric:tabular-nums;letter-spacing:.05em}
+#tip{position:fixed;bottom:13px;left:16px;font-size:11.5px;color:#475569;z-index:60}
+.ctrl{position:fixed;bottom:10px;left:50%;transform:translateX(-50%);display:flex;gap:7px;z-index:60}
+.ctrl button{width:32px;height:28px;border-radius:6px;border:1px solid rgba(255,255,255,.16);background:rgba(255,255,255,.08);color:#cbd5e1;cursor:pointer;font-size:14px}
+.ctrl button:hover{background:rgba(255,255,255,.18)}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:18px;flex:1;min-height:0}
+@media print{body{background:#fff}.s{box-shadow:none}}
+</style>
+</head>
+<body>
+<div id="prog"></div>
+<div id="stage">
+
+<!-- COVER -->
+<section class="s cover on" data-notes="안녕하세요. 폭염과 가뭄이 동시에 닥치는 복합 극한기후를 ERA5로 학습한 탐지기로 판정하고, 이 탐지기를 고정 잣대로 삼아 AI 기상예보 GenCast가 복합극한을 며칠 리드까지 재현하는지 평가한 연구입니다. 핵심은 탐지와 예보의 분리, 입력을 라벨 정의에 정렬한 doy-아노말리, 그리고 persistence까지 비교한 정직한 평가입니다.">
+  <div class="tag">Compound Hot-Dry Extremes · Detection &amp; Forecast Evaluation</div>
+  <div class="dline" style="margin-top:16px"></div>
+  <h1>복합 극한기후(Hot-Dry) 탐지와<br>GenCast 예보의 사건 단위 평가</h1>
+  <p class="lead">ERA5로 학습한 4멤버 앙상블 탐지기를 <b style="color:#5eead4">Frozen 잣대</b>로 삼아, AI 기상예보 GenCast의 15일 예보가 복합극한을 며칠 리드까지 재현하는지 정량 평가한다.</p>
+  <div class="meta"><span>동아시아 60–180°E · 0–70°N · 1°</span><span>1989–2020</span><span>Pipeline A + B</span></div>
+</section>
+
+<!-- DIVIDER 1 -->
+<section class="s divider" data-notes="첫 번째 파트는 서론입니다. 왜 복합 극한기후가 중요하고, 어떤 연구 공백이 있으며, 우리가 어떤 전략으로 접근하는지 다룹니다.">
+  <div>
+    <div class="dnum">Part 1</div>
+    <h1>서론</h1><div class="dline"></div>
+    <p>복합 극한기후의 위험 · 세 연구 흐름과 미충족 공백 · 탐지기를 평가 잣대로 삼는 접근</p>
+  </div>
+</section>
+
+<!-- 1 배경 -->
+<section class="s content" data-notes="복합 극한기후는 폭염과 가뭄이 같은 시기 같은 지역에 동시에 닥치는 사건입니다. 핵심은 피해가 단순 합이 아니라 곱셈적으로 증폭된다는 점입니다. 고온이 증발산을 키워 토양을 더 말리고, 마른 지표가 다시 기온을 끌어올리는 양의 되먹임 때문입니다. 오른쪽은 IPCC AR6 관측 지도로 동아시아 포함 hot extreme 증가를 보여줍니다.">
+  <div class="rail"><div class="sec">서론</div><div class="no">01</div></div>
+  <div class="main">
+    <div class="eyebrow">Background</div>
+    <h2>연구 배경 — 복합 극한기후란</h2><div class="hr"></div>
+    <div class="grid g-75">
+      <ul>
+        <li><b>정의</b> — 폭염(고온) ∧ 가뭄(강수 부족)이 같은 시기·지역에 <em>동시 발생</em></li>
+        <li><b>왜 더 위험한가</b> — 피해가 단순 합이 아니라 곱셈적으로 증폭</li>
+        <li class="s2">고온→증발산↑→토양 건조→지표 가열↑ 의 <b>land–atmosphere 양의 되먹임</b></li>
+        <li class="s2">결과: 농업 수확 급감·산불·수자원 고갈·열사병</li>
+        <li><b>실재성</b> — 2003 유럽·2010 러시아·<b>2018 동아시아</b>(한반도 관측사상 최악)</li>
+        <li><b>기후변화</b> — 온난화로 빈도·강도·지속 증가 (IPCC AR6 별도 위험 강조)</li>
+      </ul>
+      <div class="figwrap"><div class="fig"><img src="figures/external/R3_ipcc_observed_extremes.png" alt="IPCC 관측 극한 변화"></div><div class="cap">관측된 hot extremes·가뭄 변화 — IPCC AR6 WG1 SPM Fig.3</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- 2 선행연구 -->
+<section class="s content" data-notes="본 연구는 세 개의 성숙한 흐름 위에 서 있습니다. 복합극한 기후과학, 딥러닝 극한탐지 ClimateNet, 그리고 AI 예보 GenCast입니다. GenCast는 1320 타깃 중 97.2퍼센트에서 ECMWF ENS를 능가했습니다. 그러나 셋이 만나는 교차점, AI 예보가 복합극한을 며칠 리드까지 사건 단위로 재현하는가의 검증은 제한적입니다. 평균장 지표는 꼬리 사건을 평활하기 때문입니다.">
+  <div class="rail"><div class="sec">서론</div><div class="no">02</div></div>
+  <div class="main">
+    <div class="eyebrow">Related Work</div>
+    <h2>선행연구 — 세 흐름과 미충족 공백</h2><div class="hr"></div>
+    <div class="grid g-75">
+      <div class="cards">
+        <div class="c"><h4>① 복합극한 기후과학<span>기후</span></h4><p>Zscheischler 2018 (Nat Clim Change·compound event 정식 정의) · Mazdiyasni &amp; AghaKouchak 2015 (PNAS·동시 가뭄·폭염 유의 증가)</p></div>
+        <div class="c"><h4>② 딥러닝 극한탐지<span>방법</span></h4><p>ClimateNet, Prabhat 2021 (GMD) — 휴리스틱 임계의 불일치 → 학습 기반 탐지로 일관성</p></div>
+        <div class="c"><h4>③ AI 수치예보<span>평가대상</span></h4><p>GenCast, Price 2025 (Nature) — diffusion 앙상블, 1320 타깃 중 <b>97.2%</b>에서 ECMWF ENS 능가</p></div>
+      </div>
+      <div class="call mid"><b>미충족 공백</b><br><br>AI 예보가 hot-dry 복합극한을 <em>며칠 리드까지 사건 단위로</em> 재현하는가 — 동아시아에서 독립 학습·고정 탐지기로 리드타임별 검증한 연구는 드물다.<br><br>평균장 지표(RMSE·ACC)는 tail/joint 사건을 평활할 수 있다.</div>
+    </div>
+  </div>
+</section>
+
+<!-- 3 접근 -->
+<section class="s content" data-notes="핵심 아이디어는 복합극한을 판정하는 탐지 모델을 ERA5로 학습하고, 이를 고정한 채 GenCast 예보를 통과시켜 잣대로 쓰는 것입니다. 탐지는 사건 판정, 예보는 미래 생성으로 다릅니다. 두 파이프라인이 같은 가중치를 공유해 같은 잣대로 실측과 예보를 잰다는 공정성을 확보합니다.">
+  <div class="rail"><div class="sec">서론</div><div class="no">03</div></div>
+  <div class="main">
+    <div class="eyebrow">Approach</div>
+    <h2>접근 전략 — 탐지기를 평가 잣대로</h2><div class="hr"></div>
+    <div class="grid g-53">
+      <ul>
+        <li><b>핵심</b> — 탐지기(분류기)를 ERA5로 학습 → <em>Frozen 잣대</em>로 GenCast 평가</li>
+        <li class="s2">탐지(사건 판정) ≠ 예보(미래 생성) → 탐지기 동아시아 한정 학습 정당</li>
+        <li><b>연구 질문</b></li>
+        <li class="s2">① 신뢰성 있는 탐지 가능? ② 며칠 리드까지 재현?</li>
+        <li class="s2">③ 성분(폭염·가뭄)별 차이? ④ 앙상블 불확실성 신뢰?</li>
+        <li><b>원칙</b> — 누수 차단·절대 CSI 금지·상대 평가·다지표 병기</li>
+      </ul>
+      <div class="figwrap"><div class="fig"><img src="figures/pipeline_overview.png" alt="파이프라인 구조"></div><div class="cap">Pipeline A(학습) → Frozen 탐지기 → Pipeline B(GenCast 평가) · 가중치 공유</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- DIVIDER 2 -->
+<section class="s divider" data-notes="두 번째 파트는 데이터와 방법입니다. 데이터 구성, 라벨링 기준, 모델 아키텍처, 그리고 이 연구의 핵심 방법인 doy-아노말리를 다룹니다.">
+  <div><div class="dnum">Part 2</div><h1>데이터와 방법</h1><div class="dline"></div>
+    <p>ERA5 데이터 · 상대적 이상 라벨링 · 4멤버 앙상블 · 입력↔라벨 정렬(doy-아노말리)</p></div>
+</section>
+
+<!-- 4 데이터 -->
+<section class="s content" data-notes="데이터는 WeatherBench2 ERA5입니다. 이미 1도로 regrid돼 있고, 동아시아 71 곱하기 120 격자, 1989에서 2020까지 32년입니다. 분할은 철저히 시간 기반으로 누수를 막습니다. 변수는 네 가지에, 폭염과 복합 타깃은 평년편차 채널을 더해 다섯 채널을 씁니다.">
+  <div class="rail"><div class="sec">방법</div><div class="no">04</div></div>
+  <div class="main">
+    <div class="eyebrow">Data</div>
+    <h2>데이터 — WeatherBench2 ERA5</h2><div class="hr"></div>
+    <div class="grid g-2">
+      <ul>
+        <li><b>소스</b> — WeatherBench2 ERA5 (1° 보존적 regrid 완료, 6h)</li>
+        <li><b>영역</b> — 동아시아 60–180°E, 0–70°N → <b>71 × 120</b>, 1°</li>
+        <li><b>기간</b> — 1989–2020 (32년) 일평균</li>
+        <li><b>분할(시간 기반·누수 방지)</b></li>
+        <li class="s2">Train 1989–2009 · Val 2010–2014 · Test 2015–2020</li>
+      </ul>
+      <div style="display:flex;flex-direction:column;gap:13px;justify-content:center">
+        <div class="call"><b>변수 4개</b> — t2m(기온) · tp(강수) · Z500(지위고도) · t850(850hPa 기온) + land_sea_mask</div>
+        <div class="call warn"><b>+1 채널</b> — 폭염·복합은 <b>t2m 평년편차(아노말리)</b> 채널 추가 → 5채널 (슬라이드 09)</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 5 라벨링 -->
+<section class="s content" data-notes="라벨링은 세 사건을 절대 수치가 아니라 그 지역 그 시기 기준 상대적 이상으로 정의합니다. 폭염은 상위 5퍼센트를 3일 연속, 가뭄은 SPI-1이 마이너스 1 미만, 복합은 둘을 동시에 충족하는 것입니다. 클래스 빈도는 가뭄 15.7, 폭염 1.8, 복합 0.44퍼센트로 극히 희소합니다.">
+  <div class="rail"><div class="sec">방법</div><div class="no">05</div></div>
+  <div class="main">
+    <div class="eyebrow">Labeling</div>
+    <h2>라벨링 — 사건 판단 기준 (상대적 이상)</h2><div class="hr"></div>
+    <div class="grid g-75">
+      <div class="cards">
+        <div class="c"><h4>폭염 heatwave</h4><p>그 격자·그 시기 <b>p95 초과가 3일 연속</b> (doy ±7일 윈도우 → 계절·지역 편향 제거)</p></div>
+        <div class="c"><h4>가뭄 drought</h4><p><b>SPI-1 &lt; −1</b> — 최근 30일 누적강수 하위 ~16% · 월별 gamma 적합으로 계절중립</p></div>
+        <div class="c"><h4>복합 compound</h4><p>동일 격자·동일 날짜 <b>폭염 ∧ 가뭄</b> 동시 = 단기 compound hot-dry</p></div>
+      </div>
+      <div class="figwrap"><div class="fig"><img src="figures/external/R7_spi_timeseries_example.png" alt="SPI 시계열"></div><div class="cap">SPI 타임스케일 (UCAR) · 전기간 라벨 빈도 가뭄 <b>15.65%</b>·폭염 <b>1.84%</b>·복합 <b>0.44%</b></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- 6 검증 -->
+<section class="s content" data-notes="라벨이 실제 사건과 맞는지 검증했습니다. 가뭄 빈도가 정규분포 이론값과 일치하고, 결정적으로 2018년 폭염 빈도가 2016년보다 높아 한반도 관측사상 최악이었던 실제 기록과 정확히 일치합니다.">
+  <div class="rail"><div class="sec">방법</div><div class="no">06</div></div>
+  <div class="main">
+    <div class="eyebrow">Validation · 게이트 1 ✅</div>
+    <h2>라벨 검증 — 실제 사건과 대조</h2><div class="hr"></div>
+    <div class="grid g-53">
+      <ul>
+        <li><b>통계 보정 정확</b> — drought ≈ 15.7% ≈ 이론값 norm.cdf(−1)=15.9%</li>
+        <li><b>실제 강도 순서 일치</b> (한반도 폭염빈도)</li>
+        <li class="s2">2018 동아시아: <span class="g">0.396</span> · 2016: 0.202 → <b>2018 &gt; 2016</b></li>
+        <li class="s2">2018 = 한반도 관측사상 최악 폭염과 부합</li>
+        <li><b>SPI 계절중립</b> — 월별 가뭄비율 std 0.0013</li>
+      </ul>
+      <div class="figwrap"><div class="fig"><img src="figures/03_case_2018.png" alt="2018 폭염 사례"></div><div class="cap">2018 동아시아 폭염 공간 패턴 (7/15–8/15)</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- 7 모델 -->
+<section class="s content" data-notes="탐지 앙상블은 서로 다른 귀납 편향을 가진 네 신경망입니다. CNN-LSTM, Transformer, ConvLSTM, U-Net이 시간 처리와 공간 처리 평면에서 서로 다른 칸을 채웁니다. 멤버 오류가 비상관일수록 평균이 강해집니다. 손실은 넷 다 Focal로 통일했습니다.">
+  <div class="rail"><div class="sec">방법</div><div class="no">07</div></div>
+  <div class="main">
+    <div class="eyebrow">Model</div>
+    <h2>모델 — 4멤버 앙상블 (구조적 다양성)</h2><div class="hr"></div>
+    <div class="grid g-75">
+      <div class="cards row">
+        <div class="c"><h4>① CNN-LSTM<span>2.49M</span></h4><p>공간 임베딩 후 격자별 시간 순환. 안정 베이스라인.</p></div>
+        <div class="c"><h4>② Transformer<span>6.41M</span></h4><p>8×8 패치 장거리 어텐션. 과적합 취약.</p></div>
+        <div class="c"><h4>③ ConvLSTM<span>0.49M</span></h4><p>시간 순환 중 conv 공간 상호작용. 최경량 보완.</p></div>
+        <div class="c"><h4>④ U-Net<span>1.96M</span></h4><p>픽셀별 세그멘테이션·skip. 희소 양성 보존(단독 최강).</p></div>
+      </div>
+      <div class="figwrap"><div class="fig"><img src="figures/diversity_matrix.png" alt="다양성 매트릭스"></div><div class="cap">시간 × 공간 처리 — 4멤버가 서로 다른 칸 · 손실 전부 Focal 통일</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- 8 doy-아노말리 (방법) -->
+<section class="s content" data-notes="이 연구의 핵심 방법입니다. 폭염 라벨은 평년 대비 기준인데 입력 기온은 절대 온도장이라 기준이 어긋났습니다. 해결책은 평년편차 채널을 입력에 더하는 것입니다. 같은 28도라도 4월이면 플러스 13도 이상고온, 7월이면 마이너스 2도 정상입니다. 모델이 계절 기후표를 스스로 복원할 필요 없이 평년편차를 직접 입력받습니다. doy 기후값은 Train 기간만으로 산출해 누수가 없습니다.">
+  <div class="rail"><div class="sec">방법 · 핵심</div><div class="no">08</div></div>
+  <div class="main">
+    <div class="eyebrow">★ Key Method</div>
+    <h2>doy-아노말리 — 입력을 라벨 정의에 정렬</h2><div class="hr"></div>
+    <div class="grid g-2">
+      <ul>
+        <li><b>문제</b> — 폭염 라벨은 <em>평년 대비</em>(doy-p95)인데 입력 t2m은 <b>절대 온도장</b> → 기준 불일치</li>
+        <li><b>해결</b> — t2m <b>평년편차(아노말리) 채널</b> 추가</li>
+        <li class="s2">anom = 물리 t2m − doy 기후값(±7일) · <b>Train-only → 누수 없음</b></li>
+        <li>가뭄에서 입력창을 SPI 누적기간(30일)에 맞춘 것과 <b>같은 원리</b></li>
+      </ul>
+      <div style="display:flex;flex-direction:column;gap:12px;justify-content:center">
+        <div class="call"><b>직관 — 같은 28℃라도</b><br>· 4월 평년 15℃ → <span class="g">+13℃</span> 이상고온<br>· 7월 평년 30℃ → −2℃ 정상<br><br>모델이 계절 기후표를 복원하지 않고 <b>평년편차를 직접 입력</b>받음</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 9 학습·지표 -->
+<section class="s content" data-notes="학습은 극희소 소데이터라 Focal 손실에 양성 오버샘플, warmup-cosine, 조기종료, 해양 마스킹을 함께 씁니다. 평가지표에서 가장 중요한 원칙은 희소사건에서 AUC-ROC가 관대하다는 것입니다. 그래서 1차 지표를 PR-AUC와 무작위 대비 lift로 두고 CSI와 POD는 base rate와 함께 봅니다.">
+  <div class="rail"><div class="sec">방법</div><div class="no">09</div></div>
+  <div class="main">
+    <div class="eyebrow">Training &amp; Metrics</div>
+    <h2>학습 프로토콜과 평가지표 원칙</h2><div class="hr"></div>
+    <div class="grid g-2">
+      <div>
+        <div class="eyebrow" style="color:var(--soft)">불균형·과적합 대응</div>
+        <ul style="margin-top:12px">
+          <li><b>Focal Loss</b> (α=0.25, γ=2.0) — 4멤버 통일</li>
+          <li><b>양성밀도 오버샘플</b> — 0.44% 양성 노출 확보</li>
+          <li><b>warmup→cosine</b> · <b>조기종료</b> · 해양 마스킹</li>
+        </ul>
+      </div>
+      <div>
+        <div class="eyebrow" style="color:var(--amber)">희소사건 정직성</div>
+        <ul style="margin-top:12px">
+          <li>희소사건 <b>AUC-ROC는 관대</b> → 단독 "거의 완벽" 금지</li>
+          <li class="s2">FPR 분모=음성 97% → 오탐 많아도 작게 보임</li>
+          <li><b>1차 = PR-AUC · PR-AUC÷base(lift)</b></li>
+          <li>CSI·POD는 base rate·threshold 병기 · 타깃 간 절대 비교 금지</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- DIVIDER 3 -->
+<section class="s divider" data-notes="세 번째 파트는 결과입니다. doy-아노말리의 효과, Pipeline A 잣대 성능, Pipeline B 리드타임 평가, 불확실성, 그리고 두 가지 엄밀화 검증을 다룹니다.">
+  <div><div class="dnum">Part 3</div><h1>결과</h1><div class="dline"></div>
+    <p>doy-아노말리 효과 · Pipeline A 잣대 성능 · Pipeline B 리드타임 · 불확실성 · 엄밀화</p></div>
+</section>
+
+<!-- 10 아노말리 효과 -->
+<section class="s content" data-notes="doy-아노말리 효과는 극적이었습니다. 핵심은 단일 요인 비교라는 점입니다. 멤버, 윈도우, 손실이 전부 동일하고 입력 채널 하나만 추가했습니다. 폭염 CSI가 60퍼센트, 복합이 43퍼센트 올랐고 폭염 Recall은 0.40에서 0.66으로 뛰었습니다. 복합이 함께 오른 것은 고온이 복합 병목이라는 가능성을 강하게 지지합니다.">
+  <div class="rail"><div class="sec">결과 · 핵심</div><div class="no">10</div></div>
+  <div class="main">
+    <div class="eyebrow">★ Key Result</div>
+    <h2>doy-아노말리 효과 — 단일요인 통제 비교</h2><div class="hr"></div>
+    <div class="content-body">
+      <div class="kpis">
+        <div class="kpi"><div class="v">+60%</div><div class="l">폭염 CSI 0.2985 → <b>0.4770</b></div></div>
+        <div class="kpi"><div class="v">+43%</div><div class="l">복합 CSI 0.2031 → <b>0.2897</b></div></div>
+        <div class="kpi"><div class="v">0.40→0.66</div><div class="l">폭염 Recall(POD)</div></div>
+      </div>
+      <table>
+        <thead><tr><th>지표</th><th>폭염 비-아노</th><th>폭염 아노</th><th>복합 비-아노</th><th>복합 아노</th></tr></thead>
+        <tbody>
+          <tr><td>CSI</td><td>0.2985</td><td class="g">0.4770</td><td>0.2031</td><td class="g">0.2897</td></tr>
+          <tr><td>Recall (POD)</td><td>0.399</td><td>0.657</td><td>0.296</td><td>0.455</td></tr>
+          <tr><td>AUC</td><td>0.958</td><td>0.986</td><td>0.968</td><td>0.986</td></tr>
+          <tr><td>PR-AUC ÷ base</td><td>16×</td><td>23×</td><td>37×</td><td>53×</td></tr>
+        </tbody>
+      </table>
+      <div class="call">멤버·윈도우·손실 전부 동일, <b>입력 채널만 추가</b> → 향상은 온전한 아노말리 효과. 복합도 함께 오른 것 = <b>고온 성분이 복합 병목일 가능성</b>을 강하게 지지(직접 입증은 조건부 skill 분해 필요).</div>
+    </div>
+  </div>
+</section>
+
+<!-- 11 Pipeline A -->
+<section class="s content" data-notes="Pipeline A, 탐지 잣대 자체 성능입니다. 세 타깃 모두 AUC 0.98로 신뢰성 있게 순위화합니다. 복합 CSI가 0.29로 낮아 보이지만 이건 무능이 아니라 base rate가 만든 통계적 난이도입니다. 무작위 대비 lift로 보면 복합이 53배로 가장 높습니다.">
+  <div class="rail"><div class="sec">결과</div><div class="no">11</div></div>
+  <div class="main">
+    <div class="eyebrow">Pipeline A · 잣대 성능</div>
+    <h2>탐지 잣대 자체 성능 (ERA5 Test)</h2><div class="hr"></div>
+    <div class="grid g-53">
+      <div class="figwrap"><div class="fig"><img src="figures/detector_confusion_era5.png" alt="탐지 confusion"></div><div class="cap">ERA5 입력 시 탐지모델 confusion (모델 상한)</div></div>
+      <div style="display:flex;flex-direction:column;justify-content:center;gap:14px">
+        <table>
+          <thead><tr><th>타깃</th><th>CSI</th><th>AUC</th><th>POD</th><th>lift</th></tr></thead>
+          <tbody>
+            <tr><td>가뭄</td><td class="g">0.700</td><td>0.981</td><td>0.842</td><td>~6×</td></tr>
+            <tr><td>폭염</td><td class="g">0.477</td><td>0.986</td><td>0.657</td><td>~23×</td></tr>
+            <tr><td>복합</td><td class="g">0.290</td><td>0.986</td><td>0.455</td><td>~53×</td></tr>
+          </tbody>
+        </table>
+        <div class="call">세 타깃 AUC 0.98 = 신뢰성 있는 순위화 → <b>잣대로 유효</b>. 복합 CSI가 낮은 건 base rate의 <b>통계적 난이도</b>(이론적 천장은 base 무관) — 희소할수록 lift는 오히려 크다. <span style="color:var(--faint)">(Test base: 가뭄 15.4%·폭염 3.0%·복합 0.81%)</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 12 ablation -->
+<section class="s content" data-notes="멤버는 15개 조합을 Val CSI로 비교하고 Test는 한 번만 평가해 누수를 막았습니다. 멤버 간 확률 상관이 낮을수록 앙상블 이득이 크고, CNN-LSTM과 Transformer가 가장 다양합니다. 다양성 결합이 단독 최강을 능가합니다.">
+  <div class="rail"><div class="sec">결과</div><div class="no">12</div></div>
+  <div class="main">
+    <div class="eyebrow">Ablation</div>
+    <h2>앙상블 멤버 선정 — 다양성이 이득의 원천</h2><div class="hr"></div>
+    <div class="two">
+      <div class="figwrap"><div class="fig"><img src="figures/ablation_csi.png" alt="ablation"></div><div class="cap">15개 멤버 조합 Test CSI — 다양성 결합이 단독 최강 능가</div></div>
+      <div class="figwrap"><div class="fig"><img src="figures/member_corr.png" alt="멤버 상관"></div><div class="cap">멤버쌍 확률상관 — 낮을수록 다양성↑ (CNN-LSTM↔Transformer 최다양)</div></div>
+    </div>
+    <div class="call" style="margin-top:13px">Val CSI로 선정 → Test 1회 평가(누수 차단)·Val·Test 최적 일치(견고). 4멤버 통일 채택(아노말리는 3멤버 미세 최적이나 차이 0.003~0.005 동률권).</div>
+  </div>
+</section>
+
+<!-- 13 하이브리드 -->
+<section class="s content" data-notes="Pipeline B입니다. 탐지기는 30일 윈도우, GenCast는 15일만 예보해 절대 비교가 불가능합니다. 해결책이 하이브리드 윈도우로, 30일 창을 과거 ERA5와 미래 GenCast로 채웁니다. 44일을 슬라이딩해 리드 1부터 15까지 한 번에 얻습니다. GenCast 원본 추론은 재실행 없이 후처리만으로 평가합니다.">
+  <div class="rail"><div class="sec">결과</div><div class="no">13</div></div>
+  <div class="main">
+    <div class="eyebrow">Pipeline B · 설계</div>
+    <h2>하이브리드 윈도우 — 리드 1~15 분리</h2><div class="hr"></div>
+    <div class="grid g-2">
+      <ul>
+        <li><b>문제</b> — 탐지기 윈도우 30일 vs GenCast 예보 15일 → 절대 비교 불가</li>
+        <li><b>하이브리드</b> — 30일 창 = <b>ERA5 과거(30−d) + GenCast 미래(d)</b></li>
+        <li class="s2">ERA5 29 + GenCast 15 = 44일 슬라이딩 → 리드 1~15 한 번에</li>
+        <li><b>기준선</b> — perfect(ERA5·상한)·climatology(no-skill)·<b>persistence</b>(naive)</li>
+      </ul>
+      <div class="call mid"><b>효율</b><br><br>GenCast 원본 추론(<b>여름 90 init</b> 6/15~8/24 × 8멤버 × 15일)은 <b>재실행 없이</b> 후처리만으로 평가.<br><br>아노말리 채널은 하이브리드에서 <b>즉석 산출</b>(저장 doy 기후값 재사용·저장본과 오차 0.0 검증).</div>
+    </div>
+  </div>
+</section>
+
+<!-- 14 리드타임 -->
+<section class="s content" data-notes="Pipeline B 핵심 결과입니다. 6년 90개 초기조건 통합 리드타임 곡선입니다. 가뭄이 복합과 폭염보다 훨씬 좋습니다. 가뭄은 느린 변수라 2주 유지, 폭염과 복합은 약 1주 후 급감합니다. 결정적으로 잣대를 아노말리로 개선해 Day1 AUC가 0.97에서 0.99로 올랐는데도 리드 한계는 거의 변하지 않았습니다. 병목이 잣대가 아니라 GenCast 예보 쪽임을 통제된 방식으로 보여줍니다. 유효 구간 판단은 CSI 기반 상대 스킬 스코어 기준입니다.">
+  <div class="rail"><div class="sec">결과 · 핵심</div><div class="no">14</div></div>
+  <div class="main">
+    <div class="eyebrow">★ Pipeline B · 리드타임</div>
+    <h2>리드타임 Skill Decay — 가뭄 ≫ 복합 ≈ 폭염</h2><div class="hr"></div>
+    <div class="grid g-75">
+      <div class="figwrap"><div class="fig"><img src="figures/skill_decay_curves.png" alt="skill decay"></div><div class="cap">리드별 AUC(좌)·상대 Skill Score(우) · 6년 90 init</div></div>
+      <div style="display:flex;flex-direction:column;justify-content:center;gap:12px">
+        <table>
+          <thead><tr><th>타깃</th><th>AUC D1→15</th><th>상대SS(CSI)</th><th>유효</th></tr></thead>
+          <tbody>
+            <tr><td>가뭄</td><td>0.985→<b>0.862</b></td><td>0.98→<b>0.51</b></td><td>~2주</td></tr>
+            <tr><td>복합</td><td>0.975→0.636</td><td>0.83→0.05</td><td>~1주</td></tr>
+            <tr><td>폭염</td><td>0.966→0.630</td><td>0.79→0.08</td><td>~1주</td></tr>
+          </tbody>
+        </table>
+        <div class="cap">유효 = <b>CSI 기반 상대SS&gt;0.5</b> 기준 (AUC는 순위능력 보조)</div>
+        <div class="call">잣대를 아노말리로 개선(Day1 AUC 0.97→0.99)해도 <b>리드 한계 불변</b> = 병목은 잣대가 아니라 <b>GenCast 예보 쪽</b>.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 15 under-dispersion -->
+<section class="s content" data-notes="GenCast 앙상블의 불확실성입니다. 두 독립 분석이 같은 결론을 가리킵니다. Spread-Error에서 오차가 spread보다 훨씬 커서 8멤버가 불확실성을 과소평가합니다. Reliability에서도 폭염과 복합이 과신하고, 가뭄은 보정이 양호합니다. 확률 보정이 필요합니다. 다만 8멤버 한정 관측이고 원논문 50멤버는 양호하므로 일반화하면 안 됩니다.">
+  <div class="rail"><div class="sec">결과</div><div class="no">15</div></div>
+  <div class="main">
+    <div class="eyebrow">Uncertainty</div>
+    <h2>GenCast 앙상블 — 심한 Under-dispersion(과신)</h2><div class="hr"></div>
+    <div class="two">
+      <div class="figwrap"><div class="fig"><img src="figures/spread_error.png" alt="spread error"></div><div class="cap">RMSE ≫ 앙상블 spread = 불확실성 과소평가</div></div>
+      <div class="figwrap"><div class="fig"><img src="figures/reliability_diagram.png" alt="reliability"></div><div class="cap">Reliability — 가뭄 보정 양호 · 폭염·복합 과신</div></div>
+    </div>
+    <div class="call" style="margin-top:13px">두 독립 분석 동일 결론 → <b>확률 보정 필요</b>. (8멤버 출력공간 관측 — 원논문 50멤버는 양호, 일반화 금지)</div>
+  </div>
+</section>
+
+<!-- 16 엄밀화1 -->
+<section class="s content" data-notes="결론 전에 두 가지를 엄밀하게 검증했습니다. 첫째, GenCast는 1979에서 2018로 학습됐는데 평가 기간 2015에서 2020이 일부 겹칩니다. 그래서 학습 밖인 2019와 2020만으로 재평가하니 전체 6년과 거의 동일했습니다. 학습 겹침이 결과를 부풀리지 않았음을 입증한 것입니다.">
+  <div class="rail"><div class="sec">엄밀화</div><div class="no">16</div></div>
+  <div class="main">
+    <div class="eyebrow">Robustness ① · 독립 연도</div>
+    <h2>엄밀화 ① — 학습기간 겹침 검증</h2><div class="hr"></div>
+    <div class="grid g-2">
+      <div>
+        <div class="call warn"><b>우려</b> — GenCast 학습 <b>1979–2018</b> → 평가 2015–2020 중 <em>2015–2018 겹침</em></div>
+        <ul style="margin-top:16px">
+          <li><b>검증</b> — 학습기간 밖 <b>2019–2020만</b> 재평가</li>
+          <li><b>결론</b> — 전체 6년과 거의 동일 → 겹침이 결과 부풀리지 않음 ✅</li>
+        </ul>
+      </div>
+      <div style="display:flex;flex-direction:column;justify-content:center">
+        <table>
+          <thead><tr><th>Day1 AUC</th><th>2019–20</th><th>전체 6년</th></tr></thead>
+          <tbody>
+            <tr><td>폭염</td><td class="g">0.965</td><td>0.966</td></tr>
+            <tr><td>복합</td><td class="g">0.974</td><td>0.975</td></tr>
+            <tr><td>가뭄</td><td class="g">0.984</td><td>0.985</td></tr>
+          </tbody>
+        </table>
+        <div class="cap" style="text-align:center;margin-top:8px">독립 연도와 전체가 거의 동일</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 17 엄밀화2 -->
+<section class="s content" data-notes="둘째 엄밀화가 가장 통찰적입니다. 하이브리드라 가뭄 Day15도 ERA5 과거를 포함합니다. 그래서 가뭄 2주 skill이 GenCast 기여인지 단순 지속성인지 분리해야 합니다. 미래를 직전 관측으로 고정한 naive 예보 persistence와 비교했습니다. 가뭄은 persistence만으로도 Day15 AUC 0.80으로 매우 강해서 2주 skill의 상당 부분이 지속성이고 GenCast 순기여는 중간입니다. 반대로 폭염과 복합은 빠른 변수라 persistence가 급락하고 GenCast 순기여가 중간 리드에서 오히려 큽니다.">
+  <div class="rail"><div class="sec">엄밀화 · 핵심</div><div class="no">17</div></div>
+  <div class="main">
+    <div class="eyebrow">★ Robustness ② · Persistence</div>
+    <h2>엄밀화 ② — 순기여 분리 (persistence)</h2><div class="hr"></div>
+    <div class="grid g-53">
+      <ul>
+        <li><b>질문</b> — 가뭄 "2주 skill"이 GenCast 기여인가, 단순 <em>지속성</em>인가?</li>
+        <li><b>방법</b> — 미래를 직전 관측으로 hold한 <b>naive 예보</b>와 비교</li>
+        <li class="s2">순기여 = (GenCast − persist)/(perfect − persist)</li>
+      </ul>
+      <div style="display:flex;flex-direction:column;gap:11px;justify-content:center">
+        <table>
+          <thead><tr><th>타깃</th><th>persist AUC<br>D1→15</th><th>GenCast 순기여<br>D1/D5/D15</th></tr></thead>
+          <tbody>
+            <tr><td>가뭄</td><td>0.980→<b>0.799</b></td><td>0.73 / 0.71 / 0.34</td></tr>
+            <tr><td>복합</td><td>0.965→0.591</td><td>0.51 / <span class="g">0.82</span> / 0.12</td></tr>
+            <tr><td>폭염</td><td>0.949→0.531</td><td>0.47 / <span class="g">0.78</span> / 0.22</td></tr>
+          </tbody>
+        </table>
+        <div class="call"><b>가뭄 2주 skill은 상당부분 persistence</b>(느린 변수). 반면 <b>폭염·복합은 persistence 급락 → GenCast 순기여가 mid-lead에서 오히려 큼</b> — naive를 진짜 능가.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- DIVIDER 4 -->
+<section class="s divider" data-notes="마지막 파트는 결론입니다. 종합 결론, 정직한 한계, 그리고 핵심 기여와 향후 과제를 다룹니다.">
+  <div><div class="dnum">Part 4</div><h1>결론</h1><div class="dline"></div>
+    <p>종합 결론 · 정직한 한계 · 핵심 기여와 향후 과제</p></div>
+</section>
+
+<!-- 18 종합결론 -->
+<section class="s content" data-notes="종합 결론입니다. Pipeline A에서 입력을 라벨 정의에 정렬해 판별력을 60, 43퍼센트 올려 AUC 0.98 잣대를 만들었습니다. Pipeline B에서 운용조건상 가뭄 2주, 폭염 복합 1주 유지를 확인했고 앙상블은 과신합니다. 순기여로 보면 가뭄은 상당부분 지속성, 폭염 복합은 GenCast가 naive를 진짜 능가합니다. 방법론 기여는 탐지기를 고정 잣대로 쓰는 사건 단위 리드타임 평가 프레임입니다.">
+  <div class="rail"><div class="sec">결론</div><div class="no">18</div></div>
+  <div class="main">
+    <div class="eyebrow">Conclusion</div>
+    <h2>종합 결론</h2><div class="hr"></div>
+    <div class="cards row" style="gap:14px">
+      <div class="c"><h4>Pipeline A · 잣대 구축</h4><p>입력을 라벨 정의에 정렬(doy-아노말리)해 폭염·복합 판별력 <b>+60%/+43%</b>, AUC 0.98 신뢰성 잣대.</p></div>
+      <div class="c"><h4>Pipeline B · 예보 평가</h4><p>운용조건에서 가뭄 <b>~2주</b>·폭염·복합 <b>~1주</b> 유지. 앙상블은 과신(under-dispersion).</p></div>
+      <div class="c"><h4>순기여 (persistence 대비)</h4><p>가뭄은 상당부분 지속성, 폭염·복합은 GenCast가 naive를 진짜 능가 → 서열은 절대 AUC 기준, 순기여로는 격차 좁아짐.</p></div>
+      <div class="c"><h4>방법론 기여</h4><p>탐지기를 Frozen 잣대로 쓰는 <b>사건 단위 리드타임 평가 프레임</b> — 평균장 지표가 놓치는 tail/joint 예측성 진단.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- 19 한계 -->
+<section class="s content" data-notes="과대포장을 피하기 위해 한계를 정직하게 밝힙니다. 동아시아 여름 전용, 측정 대상은 직접 예측성이 아닌 detector score 일치도, 복합 극희소로 절대 CSI 어려움, 확률 보정 미적용, 라벨 기후정의 전기간 산출입니다.">
+  <div class="rail"><div class="sec">결론</div><div class="no">19</div></div>
+  <div class="main">
+    <div class="eyebrow">Limitations</div>
+    <h2>한계 — 정직한 서술 (과대포장 금지)</h2><div class="hr"></div>
+    <ul style="font-size:16px">
+      <li><b>적용 범위</b> — 동아시아·1°·여름·Hot-Dry 전용 (범용 아님)</li>
+      <li><b>평가 대상</b> — Frozen detector score와 ERA5 기준의 일치도 → <b>직접 예측성이 아님</b>(탐지기 편향 전파)</li>
+      <li><b>하이브리드 귀속</b> — 모든 리드가 ERA5 antecedent 포함 → persistence로 분해(완료)</li>
+      <li><b>극희소성</b> — 복합 Test base ~0.8% → 절대 CSI는 통계적으로 어렵다(이론적 천장은 base 무관)</li>
+      <li><b>확률 보정 미적용</b> · <b>라벨 기후정의 전기간 산출</b>(retrospective·입력 통계는 Train-only)</li>
+    </ul>
+  </div>
+</section>
+
+<!-- 20 기여/향후 + ref -->
+<section class="s content" data-notes="핵심 기여와 향후 과제로 마무리합니다. 한 문장으로, 동아시아 복합 극한기후를 직접 학습한 4멤버 앙상블 탐지기를 잣대로, 입력을 라벨 정의에 정렬해 판별력을 크게 끌어올리고 persistence까지 비교한 정직한 리드타임 평가로 GenCast의 사건 단위 예측 한계와 순기여를 정량화했습니다. 감사합니다.">
+  <div class="rail"><div class="sec">결론</div><div class="no">20</div></div>
+  <div class="main">
+    <div class="eyebrow">Contribution &amp; Future</div>
+    <h2>핵심 기여와 향후 과제</h2><div class="hr"></div>
+    <div class="grid g-75">
+      <div class="call mid" style="font-size:15.5px;line-height:1.65"><b>핵심 기여 (한 줄)</b><br><br>동아시아 복합 극한기후를 직접 학습한 <b>4멤버 앙상블 탐지기</b>를 잣대로, <em>입력을 라벨 정의에 정렬</em>해 판별력을 +60%/+43% 끌어올리고, <b>persistence까지 비교한 정직한 리드타임 평가</b>로 GenCast의 사건 단위 예측 한계와 순기여를 정량화했다.</div>
+      <div>
+        <div class="eyebrow" style="color:var(--soft)">향후 과제</div>
+        <ul style="margin-top:11px;font-size:15px">
+          <li>GenCast 확률 <b>보정(calibration)</b></li>
+          <li>복합 실패의 <b>성분 분해</b>(조건부 skill)</li>
+          <li><b>배포</b> — predict.py·가중치 공개</li>
+        </ul>
+        <div class="cap" style="margin-top:16px;line-height:1.6">References — Zscheischler 2018 · Mazdiyasni 2015 · Prabhat 2021(ClimateNet) · Price 2025(GenCast) · Lin 2017(Focal)</div>
+      </div>
+    </div>
+    <div class="foot"><span>복합 극한기후 탐지 + GenCast 평가</span><span>감사합니다 · Q&amp;A</span></div>
+  </div>
+</section>
+
+</div>
+
+<div id="prog"></div>
+<div id="pg">1 / 20</div>
+<div id="tip">← → 이동 · F 전체화면 · S 노트</div>
+<div class="ctrl"><button id="p">‹</button><button id="n">›</button></div>
+
+<script>
+const S=[...document.querySelectorAll('.s')];let i=0,nw=null;
+function go(n){i=Math.max(0,Math.min(S.length-1,n));
+ S.forEach((s,k)=>s.classList.toggle('on',k===i));
+ document.getElementById('pg').textContent=(i+1)+' / '+S.length;
+ document.getElementById('prog').style.width=((i+1)/S.length*100)+'%';nt();}
+function nt(){if(nw&&!nw.closed){const t=S[i].getAttribute('data-notes')||'(노트 없음)';
+ nw.document.body.innerHTML='<div style="font:16px/1.7 Pretendard,system-ui,sans-serif;padding:28px;color:#171a1f"><div style="font-size:12px;letter-spacing:.1em;color:#0f766e;font-weight:800;margin-bottom:12px;text-transform:uppercase">노트 · '+(i+1)+' / '+S.length+'</div>'+t+'</div>';}}
+function tn(){if(nw&&!nw.closed){nw.close();nw=null;return;}nw=window.open('','n','width=470,height=660');nw.document.title='발표자 노트';nw.document.body.style.cssText='margin:0;background:#f3f3ee';nt();}
+document.getElementById('n').onclick=()=>go(i+1);
+document.getElementById('p').onclick=()=>go(i-1);
+addEventListener('keydown',e=>{const k=e.key;
+ if(k==='ArrowRight'||k===' '||k==='PageDown'){e.preventDefault();go(i+1);}
+ else if(k==='ArrowLeft'||k==='PageUp'){e.preventDefault();go(i-1);}
+ else if(k==='Home')go(0);else if(k==='End')go(S.length-1);
+ else if(k==='f'||k==='F'){document.fullscreenElement?document.exitFullscreen():document.documentElement.requestFullscreen();}
+ else if(k==='s'||k==='S')tn();});
+let x=0;addEventListener('touchstart',e=>x=e.touches[0].clientX);
+addEventListener('touchend',e=>{const d=e.changedTouches[0].clientX-x;if(Math.abs(d)>50)go(i+(d<0?1:-1));});
+go(0);
+</script>
+</body>
+</html>

@@ -1,0 +1,36 @@
+# Transformer · 폭염 doy-아노말리 5채널 · Focal (2026-06-14)
+model:
+  name: transformer
+  in_vars: 5
+  patch_size: 8
+  embed_dim: 256
+  depth: 6
+  num_heads: 8
+  mlp_ratio: 4.0
+  dropout: 0.2
+  attention: factorized
+  pos_encoding: 2d_latlon
+data:
+  time_window: 30
+  vars: [t2m, tp, Z500, t850, t2m_anom]
+loss:
+  name: focal
+  alpha: 0.25
+  gamma: 2.0
+train:
+  batch_size: 4
+  epochs: 80
+  lr: 5.0e-4
+  weight_decay: 5.0e-2
+  warmup_epochs: 5
+  grad_clip: 1.0
+  sampler:
+    oversample: true
+    pos_boost: 4.0
+  early_stopping:
+    patience: 12
+  seed: 42
+smoke:
+  epochs: 30
+  batch_size: 4
+  subset_days: 90

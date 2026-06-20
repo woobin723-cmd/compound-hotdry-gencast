@@ -1,0 +1,44 @@
+# CNN-LSTM 멀티스케일 다운샘플 윈도우 (가뭄·복합 향상용)
+# 최근 14일 일별 + 이전 77일 주별평균(11스텝) = 25스텝으로 90일 커버.
+# 손실(Weighted BCE)·변수·분할 확정 유지, 입력 시간범위만 확장.
+model:
+  name: cnn_lstm
+  in_vars: 4                # t2m, tp, Z500, t850
+  cnn_channels: [32, 64, 128]
+  lstm_hidden: 256
+  lstm_layers: 2
+  bidirectional: true
+  dropout: 0.2
+
+data:
+  time_window: 14           # 멀티스케일 미사용 시 폴백값(아래 multiscale이 우선)
+  multiscale:
+    enabled: true
+    short_days: 14          # 최근 N일 일별(고해상·단기신호)
+    long_steps: 11          # 장기 블록 수
+    long_block: 7           # 블록당 일수(주별=7) → 장기 77일 커버
+    # lookback = 14 + 11*7 = 91일,  모델 시퀀스 = 11 + 14 = 25스텝
+
+train:
+  batch_size: 2             # 25스텝은 14스텝의 ~1.8배 메모리 → batch 4→2(OOM 회피)
+  epochs: 30
+  lr: 1.0e-3
+  weight_decay: 5.0e-4
+  warmup_epochs: 3
+  grad_clip: 1.0
+  pos_weight: null
+  sampler:
+    oversample: true
+    pos_boost: 4.0
+  early_stopping:
+    patience: 7
+  seed: 42
+
+loss:
+  name: weighted_bce        # 확정 손실(변경 금지)
+  pos_weight_cap: 100
+
+smoke:
+  epochs: 30
+  batch_size: 2
+  subset_days: 120          # 멀티스케일 lookback 91일 > 60일이라 smoke subset 확대
