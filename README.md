@@ -169,8 +169,18 @@ conda run -n cecd python notebooks/plot_skill_decay.py    # + plot_reliability /
 
 ## 8. 데이터
 
-대용량 원본 데이터(ERA5 6h, GenCast zarr 등 ~350GB)는 저장소에 포함하지 않으며 위 흐름으로 재생성한다.
+전체 원본(ERA5 6h, GenCast 원본 zarr 등 ~350GB)은 저장소에 포함하지 않는다. GenCast 원본 출력(`gencast_raw`, 338GB)을 뺀 **핵심 재현셋(~15GB·압축 11GB)** 을 [Releases](../../releases)에 분할 첨부했다.
 
+**핵심 재현셋 포함**: ERA5 일평균(`processed`)·doy-아노말리 채널·라벨(`labels`)·**GenCast 예보 후처리 탐지기 입력(`gencast`)**·GenCast 입력 ERA5(`gencast_input`)·리드타임 결과(`skill_json`).
+→ 이것만으로 **Pipeline B(GenCast 평가) 전체를 재현**할 수 있다(GenCast 재추론 불필요). 빠진 `gencast_raw`는 이 후처리본의 원재료일 뿐이다.
+
+```bash
+# Releases에서 분할 파일(.part-aa, .part-ab, ...) 내려받아 합치고 해제
+cat data_core_cecd.tar.zst.part-* > data_core_cecd.tar.zst
+tar -I zstd -xf data_core_cecd.tar.zst        # → data/ 하위로 복원
+```
+
+처음부터 재생성하려면:
 - **ERA5**: WeatherBench2 공개 zarr — `gs://weatherbench2/datasets/era5/1959-2023_01_10-6h-360x181_equiangular_with_poles_conservative.zarr` (gcsfs 익명 `token='anon'`)
 - **GenCast**: [google-deepmind/graphcast](https://github.com/google-deepmind/graphcast) 사전학습 가중치로 추론(별도 환경).
 
@@ -183,3 +193,9 @@ conda run -n cecd python notebooks/plot_skill_decay.py    # + plot_reliability /
 ## 참고
 
 핵심 선행연구: Zscheischler et al. 2018 (*Nat. Clim. Change*, 복합극한) · Mazdiyasni & AghaKouchak 2015 (*PNAS*, 동시 가뭄·폭염) · Prabhat et al. 2021 (*GMD*, ClimateNet) · Price et al. 2025 (*Nature*, GenCast). 상세는 보고서 참조.
+
+---
+
+## 제작
+
+이 프로젝트는 **Anthropic Claude(Claude Code)와 함께 제작**되었습니다 — 설계·구현·실험·평가·문서화 전 과정에서 페어 프로그래밍 방식으로 협업했습니다.
